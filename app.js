@@ -8,9 +8,14 @@ const state = {
   lh: '9',
   preset: 'Balanced',
   criterion: 'J3',
-  j3Tau: 0.05,
   controls: {},
 };
+
+const THETA_U_J = 0.04;
+const M004_THRESHOLD = 0.8;
+const SIGMA_THRESHOLD = 1.0;
+const MCCRIT_THRESHOLD = 0.8;
+const PEEQ_ZERO_TOL = 1e-12;
 
 const prettyMap = {
   'M0.04/Mp': 'M<sub>0.04</sub>/M<sub>p</sub>',
@@ -54,10 +59,35 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+function isNearZero(v) {
+  return Math.abs(Number(v)) <= PEEQ_ZERO_TOL;
+}
+
+function thetaForJ(candidate) {
+  if (candidate.theta_u !== null && candidate.theta_u !== undefined && !Number.isNaN(Number(candidate.theta_u))) {
+    return Number(candidate.theta_u);
+  }
+  if (candidate.theta_u_LB !== null && candidate.theta_u_LB !== undefined && !Number.isNaN(Number(candidate.theta_u_LB))) {
+    return Number(candidate.theta_u_LB);
+  }
+  return null;
+}
+
 function criterionLabel() {
-  if (state.criterion === 'None') return 'None';
-  if (state.criterion === 'J3') return `J3 (τ=${fmt(state.j3Tau, 3)})`;
   return state.criterion;
+}
+
+function criterionRuleText(criterion) {
+  if (criterion === 'J1') {
+    return 'M<sub>0.04</sub>/M<sub>p</sub> ≥ 0.8 and θ<sub>u</sub> ≥ 0.04 rad';
+  }
+  if (criterion === 'J2') {
+    return 'J1 and σ<sub>vm,CF</sub>/f<sub>y</sub> ≤ 1.0 and PEEQ<sub>CF</sub> ≈ 0.0';
+  }
+  if (criterion === 'J3') {
+    return 'J2 and M<sub>c</sub> ≥ 0.8 M<sub>c,FS</sub>';
+  }
+  return 'None';
 }
 
 function passBadge(flag) {
@@ -118,9 +148,10 @@ function currentCandidates() {
 }
 
 function candidateFlags(candidate) {
-  const j1 = Number(candidate.M004_Mp) >= 0.8;
-  const j2 = j1 && Number(candidate.sigma_ratio) <= 1.0;
-  const j3 = j2 && Number(candidate.PEEQCF) <= Number(state.j3Tau);
+  const thetaEval = thetaForJ(candidate);
+  const j1 = Number(candidate.M004_Mp) >= M004_THRESHOLD && thetaEval !== null && thetaEval >= THETA_U_J;
+  const j2 = j1 && Number(candidate.sigma_ratio) <= SIGMA_THRESHOLD && isNearZero(candidate.PEEQCF);
+  const j3 = j2 && Number(candidate.Mc_McFS) >= MCCRIT_THRESHOLD;
   return { j1, j2, j3 };
 }
 
@@ -225,11 +256,6 @@ function buildSelectOptions() {
   });
   document.getElementById('criterionSelect').addEventListener('change', (e) => {
     state.criterion = e.target.value;
-    refresh();
-  });
-  document.getElementById('j3TauInput').addEventListener('change', (e) => {
-    state.j3Tau = clamp(Number(e.target.value), 0.005, 0.150);
-    e.target.value = state.j3Tau;
     refresh();
   });
 }
@@ -420,11 +446,14 @@ function updateCandidateTable(rows) {
       <td>${passSymbol(row.__flags.j2)}</td>
       <td>${passSymbol(row.__flags.j3)}</td>
       <td>${fmt(row.M004_Mp, 3)}</td>
+      <td>${fmt(thetaForJ(row), 4)}</td>
       <td>${fmt(row.sigma_ratio, 3)}</td>
+      <td>${fmt(row.PEEQCF, 3)}</td>
+      <td>${fmt(row.Mc_McFS, 3)}</td>
     </tr>`).join('');
 }
 
-function updateEstimateCards(doPred, shPred, nearest, topRows, allRows, rates) {
+function updateEstimateCards(doPred, shPred, nearest, topRows, allRows) {
   const top = topRows[0];
   const activeCount = allRows.filter((r) => r.__criterion_ok).length;
   const cards = [
@@ -442,8 +471,10 @@ function updateCriteriaCards(rates) {
   const cards = [
     ['J1 rate', pct(rates.j1)],
     ['J2 rate', pct(rates.j2)],
-    [`J3 rate`, pct(rates.j3)],
-    ['J3 τ', fmt(state.j3Tau, 3)],
+    ['J3 rate', pct(rates.j3)],
+    ['θ<sub>u</sub> threshold', '4.0%'],
+    ['PEEQ<sub>CF</sub> rule', '≈ 0.0'],
+    ['M<sub>c</sub> rule', '≥ 0.8 M<sub>c,FS</sub>'],
   ];
   document.getElementById('criteriaCards').innerHTML = cards.map(([k, v]) => `<div class="card"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
@@ -453,17 +484,17 @@ function updateNotice(hasPass, allRows, activeRows) {
   const scoreMapNote = document.getElementById('scoreMapNote');
   if (state.criterion === 'None') {
     box.className = 'notice-box';
-    box.textContent = '';
+    box.innerHTML = '';
     scoreMapNote.textContent = 'Lower score indicates closer agreement with the selected target set';
     return;
   }
   if (hasPass) {
     box.className = 'notice-box ok';
-    box.textContent = `${criterionLabel()} is active. ${activeRows.length} of ${allRows.length} FE-backed geometries in this beam context satisfy the criterion.`;
+    box.innerHTML = `<strong>${criterionLabel()}</strong> is active. ${activeRows.length} of ${allRows.length} FE-backed geometries in this beam context satisfy ${criterionRuleText(state.criterion)}.`;
     scoreMapNote.textContent = `Blank cells fail ${criterionLabel()}; coloured cells satisfy it and are ranked by inverse ML score`;
   } else {
     box.className = 'notice-box warn';
-    box.textContent = `No FE-backed geometry in this beam context satisfies ${criterionLabel()}. The table therefore shows the lowest-penalty alternatives instead of an empty result.`;
+    box.innerHTML = `No FE-backed geometry in this beam context satisfies <strong>${criterionLabel()}</strong>, defined here as ${criterionRuleText(state.criterion)}. The table therefore shows the lowest-penalty alternatives instead of an empty result.`;
     scoreMapNote.textContent = `No cell satisfies ${criterionLabel()} in this context; the map shows all cells by inverse ML score`;
   }
 }
@@ -476,12 +507,17 @@ function updateBestCandidateDetail(top) {
     ['J2', passBadge(top.__flags.j2)],
     ['J3', passBadge(top.__flags.j3)],
     ['M<sub>0.04</sub>/M<sub>p</sub>', fmt(top.M004_Mp, 3)],
-    ['M<sub>0.06</sub>/M<sub>0.06,FS</sub>', fmt(top.M006_M006FS, 3)],
-    ['E<sub>d</sub>/E<sub>d,FS</sub>', fmt(top.Ed_ratio, 3)],
+    ['θ<sub>u,eval</sub> (rad)', fmt(thetaForJ(top), 4)],
+    ['θ<sub>u</sub> (rad)', fmt(top.theta_u, 4)],
+    ['θ<sub>u,LB</sub> (rad)', fmt(top.theta_u_LB, 4)],
     ['σ<sub>vm,CF</sub>/f<sub>y</sub>', fmt(top.sigma_ratio, 3)],
     ['PEEQ<sub>CF</sub>', fmt(top.PEEQCF, 3)],
+    ['M<sub>c</sub>/M<sub>c,FS</sub>', fmt(top.Mc_McFS, 3)],
+    ['M<sub>c</sub> (kN·m)', fmt(top.Mc, 1)],
+    ['M<sub>c,FS</sub> (kN·m)', fmt(top.Mc_FS, 1)],
+    ['M<sub>0.06</sub>/M<sub>0.06,FS</sub>', fmt(top.M006_M006FS, 3)],
+    ['E<sub>d</sub>/E<sub>d,FS</sub>', fmt(top.Ed_ratio, 3)],
     ['L<sub>ph</sub>/h', fmt(top.Lph_h, 3)],
-    ['θ<sub>u,LB</sub> (rad)', fmt(top.theta_u_LB, 4)],
   ];
   document.getElementById('bestCandidateDetail').innerHTML = items.map(([k, v]) => `<div class="card"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
@@ -497,7 +533,7 @@ function refresh() {
   const nearest = nearestGeometryCandidate(activeRows, doPred, shPred);
   const rates = contextRates(allRows);
 
-  updateEstimateCards(doPred, shPred, nearest, activeRows, allRows, rates);
+  updateEstimateCards(doPred, shPred, nearest, activeRows, allRows);
   updateCriteriaCards(rates);
   updateNotice(hasPass, allRows, activeRows);
   updateCandidateTable(activeRows);

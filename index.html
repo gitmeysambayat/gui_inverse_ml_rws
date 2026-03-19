@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Inverse ML for circular RWS connection predictions</title>
+  <title>Inverse ML predictions for circular RWS connections</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
 <body>
   <header class="page-header">
     <div>
-      <h1>Inverse ML for circular RWS connection predictions</h1>
-      <p>Static GitHub Pages interface for inverse prediction of d<sub>o</sub>/h and S/h from target cyclic response, with Chapter 5 J1, J2 and J3 screening embedded.</p>
+      <h1>Inverse ML predictions for circular RWS connections</h1>
+      <p>Static GitHub Pages interface for inverse prediction of d<sub>o</sub>/h and S/h from target cyclic response, with the updated Chapter 5 J1, J2 and J3 criteria embedded exactly as provided.</p>
     </div>
     <div class="mode-pill">Inverse ML mode</div>
   </header>
@@ -50,23 +50,19 @@
           <option value="J3" selected>J3</option>
         </select>
       </div>
-      <div class="field-row">
-        <label for="j3TauInput">J3 strain threshold, τ</label>
-        <input id="j3TauInput" type="number" min="0.005" max="0.150" step="0.005" value="0.05" />
-      </div>
 
       <div class="criteria-box">
-        <div><strong>J1</strong>: M<sub>0.04</sub>/M<sub>p</sub> ≥ 0.8</div>
-        <div><strong>J2</strong>: J1 and σ<sub>vm,CF</sub>/f<sub>y</sub> ≤ 1.0</div>
-        <div><strong>J3(τ)</strong>: J2 and PEEQ<sub>CF</sub> ≤ τ</div>
+        <div><strong>J<sub>1</sub></strong> = P[(M<sub>0.04</sub> ≥ 0.8M<sub>p</sub>) ∩ (θ<sub>u</sub> ≥ 4%)]</div>
+        <div><strong>J<sub>2</sub></strong> = P[(M<sub>0.04</sub> ≥ 0.8M<sub>p</sub>) ∩ (θ<sub>u</sub> ≥ 4%) ∩ (σ<sub>vm,CF</sub>/F<sub>y</sub> ≤ 1) ∩ (PEEQ<sub>CF</sub> ≈ 0.0)]</div>
+        <div><strong>J<sub>3</sub></strong> = P[(M<sub>0.04</sub> ≥ 0.8M<sub>p</sub>) ∩ (θ<sub>u</sub> ≥ 4%) ∩ (σ<sub>vm,CF</sub>/F<sub>y</sub> ≤ 1) ∩ (PEEQ<sub>CF</sub> ≈ 0.0) ∩ (M<sub>c</sub> ≥ 0.8M<sub>c,FS</sub>)]</div>
+      </div>
+
+      <div class="section-note">
+        Beneficial targets are treated as lower bounds for strength, energy dissipation, hinge relocation and lower-bound drift capacity. Column-face stress and PEEQ targets are treated as upper bounds in the inverse score. The J-screening logic is separate and uses the updated Chapter 5 definitions above. In the FE-backed dataset, the condition PEEQ<sub>CF</sub> ≈ 0.0 is implemented as PEEQ<sub>CF</sub> = 0.0 within a tiny numerical tolerance. For the drift-capacity term, the interface uses θ<sub>u</sub> when it exists and falls back to θ<sub>u,LB</sub> only for cases where the explicit θ<sub>u</sub> value is censored by the analysed rotation range.
       </div>
 
       <div class="subheading">Target performance</div>
       <div id="controlStack"></div>
-
-      <div class="section-note">
-        Beneficial targets are treated as lower bounds for strength, energy dissipation, hinge relocation and lower-bound drift capacity. Column-face stress and PEEQ targets are treated as upper bounds. When J1, J2 or J3 is active, the ranked list is screened by that criterion whenever at least one FE-backed case in the selected beam context satisfies it.
-      </div>
 
       <div class="mini-cards" id="beamPropsCard"></div>
     </aside>
@@ -107,7 +103,10 @@
               <th>J2</th>
               <th>J3</th>
               <th>M<sub>0.04</sub>/M<sub>p</sub></th>
+              <th>θ<sub>u,eval</sub> (rad)</th>
               <th>σ<sub>vm,CF</sub>/f<sub>y</sub></th>
+              <th>PEEQ<sub>CF</sub></th>
+              <th>M<sub>c</sub>/M<sub>c,FS</sub></th>
             </tr>
           </thead>
           <tbody></tbody>
