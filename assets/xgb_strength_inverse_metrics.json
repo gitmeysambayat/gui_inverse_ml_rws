@@ -1,0 +1,18 @@
+{
+  "xgb_inverse_strength_features": [
+    "h (mm)",
+    "b (mm)",
+    "tw (mm)",
+    "tf (mm)",
+    "fy (MPa)",
+    "2L/h",
+    "My_Mp",
+    "Omega_s"
+  ],
+  "test_metrics": {
+    "do_r2": 0.7772405800683878,
+    "sh_r2": 0.5830951017809864,
+    "do_mae": 0.04918826980590821,
+    "sh_mae": 0.2898470294157664
+  }
+}

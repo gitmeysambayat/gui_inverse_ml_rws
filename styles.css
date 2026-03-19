@@ -6,12 +6,10 @@
   --muted: #667085;
   --accent: #2a5bd7;
   --accent-soft: #e9efff;
-  --ok-bg: #edfdf3;
-  --ok-fg: #067647;
-  --bad-bg: #fef3f2;
-  --bad-fg: #b42318;
-  --warn-bg: #fff8e1;
-  --warn-fg: #8a5b00;
+  --warn-bg: #fff6e6;
+  --warn-line: #f1c27d;
+  --ok-bg: #edf9ef;
+  --ok-line: #9ed7a6;
 }
 * { box-sizing: border-box; }
 body {
@@ -23,32 +21,33 @@ body {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 16px;
   padding: 18px 24px 10px;
 }
 .page-header h1 {
-  margin: 0 0 3px;
+  margin: 0 0 4px;
   font-size: 24px;
 }
 .page-header p {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
-  max-width: 860px;
+  line-height: 1.45;
+  max-width: 980px;
 }
 .mode-pill {
+  flex: 0 0 auto;
   padding: 8px 12px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 700;
   font-size: 12px;
-  white-space: nowrap;
 }
 .grid-shell {
   display: grid;
-  grid-template-columns: 320px minmax(580px, 1fr) 430px;
+  grid-template-columns: 310px minmax(620px, 1fr) 390px;
   gap: 14px;
   padding: 0 18px 18px;
 }
@@ -58,6 +57,7 @@ body {
   border-radius: 12px;
   padding: 14px 14px 12px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  min-width: 0;
 }
 .panel h2 {
   margin: 0 0 12px;
@@ -73,6 +73,7 @@ body {
 .toolbar-note {
   color: var(--muted);
   font-size: 12px;
+  text-align: right;
 }
 .field-row {
   margin-bottom: 10px;
@@ -110,11 +111,18 @@ select, input[type="number"] {
 }
 .control-inline {
   display: grid;
-  grid-template-columns: 1fr 78px;
+  grid-template-columns: 1fr 88px;
   gap: 8px;
   align-items: center;
 }
-input[type="range"] { width: 100%; }
+.control-range-note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+input[type="range"] {
+  width: 100%;
+}
 .subheading {
   margin-top: 12px;
   margin-bottom: 8px;
@@ -124,53 +132,45 @@ input[type="range"] { width: 100%; }
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
-.section-note,
-.criteria-box,
-.notice-box {
-  margin-top: 12px;
+.criteria-box {
+  margin-top: 8px;
   font-size: 12px;
-  color: var(--muted);
+  line-height: 1.45;
   background: #fbfcfe;
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 10px 12px;
-  line-height: 1.35;
 }
-.criteria-box {
-  background: white;
-  color: var(--text);
-}
-.criteria-box div + div { margin-top: 5px; }
 .notice-box {
-  display: none;
-}
-.notice-box.warn {
-  display: block;
-  background: var(--warn-bg);
-  color: var(--warn-fg);
-  border-color: #f3d37b;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: #fbfcfe;
+  min-height: 18px;
 }
 .notice-box.ok {
-  display: block;
   background: var(--ok-bg);
-  color: var(--ok-fg);
-  border-color: #a6f4c5;
+  border-color: var(--ok-line);
 }
-.mini-cards {
+.notice-box.warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+}
+.mini-cards, .detail-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-top: 10px;
-}
-.criteria-cards {
-  grid-template-columns: repeat(2, 1fr);
 }
 .card {
   background: white;
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 9px 10px;
-  min-height: 60px;
+  min-width: 0;
 }
 .card .k {
   display: block;
@@ -181,6 +181,7 @@ input[type="range"] { width: 100%; }
 .card .v {
   font-size: 15px;
   font-weight: 700;
+  word-break: break-word;
 }
 .plot-box {
   width: 100%;
@@ -189,8 +190,50 @@ input[type="range"] { width: 100%; }
   border-radius: 10px;
   background: white;
 }
-.plot-box.small { height: 290px; }
-.table-wrap { overflow-x: auto; }
+.plot-box.small {
+  height: 290px;
+}
+.contour-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+.contour-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+}
+.contour-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.contour-head a {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+.contour-card img {
+  width: 100%;
+  height: 250px;
+  object-fit: contain;
+  border: 1px solid #eceff3;
+  border-radius: 8px;
+  background: #fff;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+.table-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -212,15 +255,42 @@ tbody td {
   padding: 7px 6px;
   border-bottom: 1px solid #edf0f3;
   text-align: center;
+  white-space: nowrap;
 }
 tbody tr:nth-child(even) { background: #fafbfd; }
-tbody tr.dimmed {
-  opacity: 0.72;
+tbody tr {
+  cursor: pointer;
 }
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+tbody tr.selected-row {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: #eef3ff !important;
+}
+tbody tr.dimmed {
+  opacity: 0.5;
+}
+.pass-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pass-badge.pass {
+  background: #edf9ef;
+  color: #17603a;
+}
+.pass-badge.fail {
+  background: #fff0ef;
+  color: #8a2430;
+}
+.status-yes {
+  color: #17603a;
+  font-weight: 700;
+}
+.status-no {
+  color: #8a2430;
+  font-weight: 700;
 }
 .badge {
   display: inline-block;
@@ -231,32 +301,14 @@ tbody tr.dimmed {
   background: #eef3ff;
   color: var(--accent);
 }
-.pass-badge {
-  display: inline-block;
-  min-width: 44px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-}
-.pass-badge.pass {
-  background: var(--ok-bg);
-  color: var(--ok-fg);
-}
-.pass-badge.fail {
-  background: var(--bad-bg);
-  color: var(--bad-fg);
-}
-.status-yes {
-  color: var(--ok-fg);
-  font-weight: 700;
-}
-.status-no {
-  color: var(--bad-fg);
-  font-weight: 700;
-}
-@media (max-width: 1380px) {
+@media (max-width: 1420px) {
   .grid-shell {
     grid-template-columns: 1fr;
+  }
+  .contour-grid {
+    grid-template-columns: 1fr;
+  }
+  .page-header {
+    flex-direction: column;
   }
 }

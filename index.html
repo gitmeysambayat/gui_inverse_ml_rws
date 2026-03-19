@@ -11,14 +11,14 @@
   <header class="page-header">
     <div>
       <h1>Inverse ML predictions for circular RWS connections</h1>
-      <p>Static GitHub Pages interface for inverse prediction of d<sub>o</sub>/h and S/h from target cyclic response, with the updated Chapter 5 J1, J2 and J3 criteria embedded exactly as provided.</p>
+      <p>This interface inverts the strength side of the forward RWS explorer. The user fixes the beam context and target strengths, the inverse ML model estimates the opening geometry, and the nearest FE-backed cases are returned with exact backbone curves and contour images.</p>
     </div>
     <div class="mode-pill">Inverse ML mode</div>
   </header>
 
   <div class="grid-shell">
     <aside class="panel left-panel">
-      <h2>Inverse ML inputs</h2>
+      <h2>Inputs</h2>
 
       <div class="field-row">
         <label for="profileSelect">Profile</label>
@@ -32,17 +32,12 @@
         <label for="lhSelect">Span-to-depth ratio, 2L/h</label>
         <select id="lhSelect"></select>
       </div>
-      <div class="field-row">
-        <label for="presetSelect">Priority preset</label>
-        <select id="presetSelect">
-          <option value="Balanced">Balanced</option>
-          <option value="Protection">Column-face protection</option>
-        </select>
-      </div>
 
-      <div class="subheading">Chapter 5 screening</div>
+      <div class="subheading">Target strengths</div>
+      <div id="strengthControlStack"></div>
+
       <div class="field-row">
-        <label for="criterionSelect">Active screening criterion</label>
+        <label for="criterionSelect">Chapter 5 screening filter</label>
         <select id="criterionSelect">
           <option value="None">None</option>
           <option value="J1">J1</option>
@@ -52,44 +47,63 @@
       </div>
 
       <div class="criteria-box">
-        <div><strong>J<sub>1</sub></strong> = P[(M<sub>0.04</sub> ≥ 0.8M<sub>p</sub>) ∩ (θ<sub>u</sub> ≥ 4%)]</div>
-        <div><strong>J<sub>2</sub></strong> = P[(M<sub>0.04</sub> ≥ 0.8M<sub>p</sub>) ∩ (θ<sub>u</sub> ≥ 4%) ∩ (σ<sub>vm,CF</sub>/F<sub>y</sub> ≤ 1) ∩ (PEEQ<sub>CF</sub> ≈ 0.0)]</div>
-        <div><strong>J<sub>3</sub></strong> = P[(M<sub>0.04</sub> ≥ 0.8M<sub>p</sub>) ∩ (θ<sub>u</sub> ≥ 4%) ∩ (σ<sub>vm,CF</sub>/F<sub>y</sub> ≤ 1) ∩ (PEEQ<sub>CF</sub> ≈ 0.0) ∩ (M<sub>c</sub> ≥ 0.8M<sub>c,FS</sub>)]</div>
+        <div><strong>J1</strong>: M<sub>0.04</sub> ≥ 0.8 M<sub>p</sub> and θ<sub>u</sub> ≥ 4%</div>
+        <div><strong>J2</strong>: J1 and σ<sub>vm,CF</sub>/F<sub>y</sub> ≤ 1 and PEEQ<sub>CF</sub> ≈ 0.0</div>
+        <div><strong>J3</strong>: J2 and M<sub>c</sub> ≥ 0.8 M<sub>c,FS</sub></div>
       </div>
 
-      <div class="section-note">
-        Beneficial targets are treated as lower bounds for strength, energy dissipation, hinge relocation and lower-bound drift capacity. Column-face stress and PEEQ targets are treated as upper bounds in the inverse score. The J-screening logic is separate and uses the updated Chapter 5 definitions above. In the FE-backed dataset, the condition PEEQ<sub>CF</sub> ≈ 0.0 is implemented as PEEQ<sub>CF</sub> = 0.0 within a tiny numerical tolerance. For the drift-capacity term, the interface uses θ<sub>u</sub> when it exists and falls back to θ<sub>u,LB</sub> only for cases where the explicit θ<sub>u</sub> value is censored by the analysed rotation range.
-      </div>
+      <div id="inputNotice" class="notice-box"></div>
 
-      <div class="subheading">Target performance</div>
-      <div id="controlStack"></div>
-
+      <div class="subheading">Beam context and reference values</div>
       <div class="mini-cards" id="beamPropsCard"></div>
+      <div class="mini-cards" id="rangeCards"></div>
     </aside>
 
     <main class="panel center-panel">
       <div class="panel-head">
-        <h2>Backbone response</h2>
-        <div class="toolbar-note">Top-ranked exact FE candidates in the selected beam context</div>
+        <h2>Backbone curve</h2>
+        <div class="toolbar-note">Selected FE case, top-ranked FE case, and full-section reference</div>
       </div>
       <div id="backbonePlot" class="plot-box"></div>
 
       <div class="panel-head tight-top">
-        <h2>Inverse ML score map</h2>
-        <div class="toolbar-note" id="scoreMapNote">Lower score indicates closer agreement with the selected target set</div>
+        <h2>Strength-mismatch map</h2>
+        <div class="toolbar-note" id="mismatchMapNote">Lower score means closer agreement with the target M<sub>y</sub> and M<sub>c</sub></div>
       </div>
-      <div id="scoreMap" class="plot-box small"></div>
+      <div id="mismatchMap" class="plot-box small"></div>
+
+      <div class="panel-head tight-top">
+        <h2>Closest FE contour images</h2>
+        <div class="toolbar-note" id="contourCaption">Contour images for the selected FE-backed case</div>
+      </div>
+      <div class="contour-grid">
+        <div class="contour-card">
+          <div class="contour-head">
+            <span>von Mises</span>
+            <a id="vonMisesLink" target="_blank" rel="noopener noreferrer">Open</a>
+          </div>
+          <img id="vonMisesImg" alt="von Mises contour" />
+        </div>
+        <div class="contour-card">
+          <div class="contour-head">
+            <span>PEEQ</span>
+            <a id="peeqLink" target="_blank" rel="noopener noreferrer">Open</a>
+          </div>
+          <img id="peeqImg" alt="PEEQ contour" />
+        </div>
+      </div>
     </main>
 
     <aside class="panel right-panel">
-      <h2>Inverse ML diagnostics</h2>
+      <h2>Inverse ML outputs</h2>
       <div class="mini-cards" id="estimateCards"></div>
 
-      <div class="subheading">Chapter 5 screening rates</div>
+      <div class="subheading">Context screening rates</div>
       <div class="mini-cards criteria-cards" id="criteriaCards"></div>
       <div id="criterionNotice" class="notice-box"></div>
 
-      <div class="subheading">Ranked FE-backed candidates</div>
+      <div class="subheading">Closest FE-backed cases</div>
+      <div class="table-note">Click a row to inspect that FE case.</div>
       <div class="table-wrap">
         <table id="candidateTable">
           <thead>
@@ -98,22 +112,20 @@
               <th>Case</th>
               <th>d<sub>o</sub>/h</th>
               <th>S/h</th>
-              <th>Score</th>
+              <th>M<sub>y</sub></th>
+              <th>ΔM<sub>y</sub></th>
+              <th>M<sub>c</sub></th>
+              <th>ΔM<sub>c</sub></th>
               <th>J1</th>
               <th>J2</th>
               <th>J3</th>
-              <th>M<sub>0.04</sub>/M<sub>p</sub></th>
-              <th>θ<sub>u,eval</sub> (rad)</th>
-              <th>σ<sub>vm,CF</sub>/f<sub>y</sub></th>
-              <th>PEEQ<sub>CF</sub></th>
-              <th>M<sub>c</sub>/M<sub>c,FS</sub></th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
 
-      <div class="subheading">Best candidate details</div>
+      <div class="subheading">Selected FE case details</div>
       <div class="detail-grid" id="bestCandidateDetail"></div>
     </aside>
   </div>
