@@ -1,0 +1,27 @@
+{
+  "train_test_split": "70/30 random split, random_state=42",
+  "features": [
+    "h (mm)",
+    "b (mm)",
+    "tw (mm)",
+    "tf (mm)",
+    "fy (MPa)",
+    "2L/h",
+    "My_FS_ratio",
+    "Mc_FS_ratio",
+    "Mu_Mc",
+    "theta_u_target",
+    "Omega_s"
+  ],
+  "doh": {
+    "r2": 0.923554667318273,
+    "rmse": 0.03982193742144451,
+    "mae": 0.024087265539169313
+  },
+  "Sh": {
+    "r2": 0.8332349216708815,
+    "rmse": 0.2334338770820268,
+    "mae": 0.1670042926867803
+  },
+  "exact_cell_accuracy": 0.3857777777777778
+}

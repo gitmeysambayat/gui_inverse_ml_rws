@@ -1,39 +1,68 @@
 # Inverse ML predictions for circular RWS connections
 
-This GitHub Pages bundle rebuilds the inverse interface around the strength-side inverse problem that matches the forward RWS explorer more closely.
+This is a fully static GitHub Pages bundle for inverse ML predictions of circular reduced web section connections.
 
-## What this version does
+## What this revision changes
 
-- fixes the backbone display by using the exact FE backbone ordinates from the thesis dataset
-- uses beam context plus target strengths `My` and `Mc` as the main inverse inputs
-- returns the best opening geometry `d_o/h` and spacing `S/h` in two ways:
-  - a continuous inverse ML estimate from browser-side XGBoost
-  - the nearest FE-backed opening cases in the selected beam context
-- keeps the Chapter 5 `J1`, `J2`, and `J3` screening logic
-- shows the exact FE contour images for the selected case by linking to the contour-image repository already used by the forward GUI
+- Inputs are now treated as **minimum targets** rather than exact matching values.
+- The interface uses:
+  - Profile
+  - Steel grade
+  - Span-to-depth ratio `2L/h`
+  - Minimum target `M_y`
+  - Minimum target `M_c`
+  - Minimum target `M_u`
+  - Minimum target `θ_u`
+  - Preferred `J1`, `J2`, or `J3` filter
+- `M_c` is never allowed below `M_y`.
+- `M_u` is never allowed above `M_c`.
+- The inverse ML model predicts continuous `d_o/h` and `S/h`.
+- The returned recommendation is the **best FE-backed opening case in the selected beam context** that satisfies the chosen J-screen and the user minimum targets, or the nearest miss when no feasible case exists.
+- Backbone curves come from the exact FE backbone CSV.
+- Contour images use the same public contour repository structure as the forward GUI.
 
-## Main logic
+## Inverse ML model
 
-1. The user selects the beam context: profile, grade, and `2L/h`.
-2. The user enters target strengths `My` and `Mc`.
-3. The inverse ML model estimates continuous `d_o/h` and `S/h`.
-4. The FE-backed opening cases in the same context are ranked by exact mismatch in `My` and `Mc`.
-5. The selected FE case shows:
-   - exact backbone curve
-   - `J1`, `J2`, and `J3`
-   - von Mises contour image
-   - PEEQ contour image
+The browser-side inverse ML model was retrained on the 7,500 opening cases using a 70% train and 30% test split.
 
-## Files
+Feature set used in the browser model:
 
-- `index.html` — interface shell
-- `styles.css` — layout and styling
-- `app.js` — browser-side inverse ML and FE ranking logic
-- `assets/inverse_meta.json` — metadata, beam properties, context ranges, rotation grid
-- `assets/inverse_candidates.json` — FE-backed opening cases and exact backbone curves
-- `assets/xgb_inverse_doh_dump.json` — browser-side XGBoost model for `d_o/h`
-- `assets/xgb_inverse_Sh_dump.json` — browser-side XGBoost model for `S/h`
+- `h (mm)`
+- `b (mm)`
+- `tw (mm)`
+- `tf (mm)`
+- `fy (MPa)`
+- `2L/h`
+- `My_FS_ratio = My / My_FS`
+- `Mc_FS_ratio = Mc / Mc_FS`
+- `Mu_Mc = Mu / Mc`
+- `theta_u_target`
+- `Omega_s = Mc / My`
 
-## Publish
+Test metrics are stored in:
 
-Copy the unzipped contents of this bundle into the root of the GitHub repository and publish with GitHub Pages from `main` and `/(root)`.
+- `assets/xgb_strength_theta_inverse_metrics.json`
+
+## J-criteria logic
+
+The interface uses the updated Chapter 5 definitions supplied by the thesis author:
+
+- `J1 = P[(M0.04 ≥ 0.8 Mp) ∩ (θu ≥ 4%)]`
+- `J2 = P[(M0.04 ≥ 0.8 Mp) ∩ (θu ≥ 4%) ∩ (σvm,CF/Fy ≤ 1) ∩ (PEEQCF ≈ 0.0)]`
+- `J3 = P[(M0.04 ≥ 0.8 Mp) ∩ (θu ≥ 4%) ∩ (σvm,CF/Fy ≤ 1) ∩ (PEEQCF ≈ 0.0) ∩ (Mc ≥ 0.8 Mc,FS)]`
+
+## Conservative handling of `Mu` and `θu`
+
+When the 20% strength degradation point is reached within the analysed drift range:
+
+- `Mu = 0.8 Mc`
+- `θu` is taken from the exact drop point
+
+When the 20% drop is **not** reached by 6% drift:
+
+- `Mu` is shown conservatively as `M0.06`
+- `θu` is shown as a lower bound of `0.06 rad`
+
+## Publish with GitHub Pages
+
+Copy the contents of this folder into the repository root, commit, push, and enable GitHub Pages from `main` and `/(root)`.

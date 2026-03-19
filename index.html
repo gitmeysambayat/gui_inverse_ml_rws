@@ -11,7 +11,7 @@
   <header class="page-header">
     <div>
       <h1>Inverse ML predictions for circular RWS connections</h1>
-      <p>This interface inverts the strength side of the forward RWS explorer. The user fixes the beam context and target strengths, the inverse ML model estimates the opening geometry, and the nearest FE-backed cases are returned with exact backbone curves and contour images.</p>
+      <p>The user fixes the beam context and minimum targets for M<sub>y</sub>, M<sub>c</sub>, M<sub>u</sub>, and θ<sub>u</sub>. The inverse ML model estimates a continuous opening geometry, then the exact FE-backed circular RWS cases in that beam context are filtered by the chosen J-screen and ranked to return the recommended web opening diameter ratio and opening distance ratio.</p>
     </div>
     <div class="mode-pill">Inverse ML mode</div>
   </header>
@@ -33,11 +33,11 @@
         <select id="lhSelect"></select>
       </div>
 
-      <div class="subheading">Target strengths</div>
-      <div id="strengthControlStack"></div>
+      <div class="subheading">Minimum target strengths and drift capacity</div>
+      <div id="targetControlStack"></div>
 
       <div class="field-row">
-        <label for="criterionSelect">Chapter 5 screening filter</label>
+        <label for="criterionSelect">Preferred J-screen</label>
         <select id="criterionSelect">
           <option value="None">None</option>
           <option value="J1">J1</option>
@@ -62,15 +62,15 @@
     <main class="panel center-panel">
       <div class="panel-head">
         <h2>Backbone curve</h2>
-        <div class="toolbar-note">Selected FE case, top-ranked FE case, and full-section reference</div>
+        <div class="toolbar-note">Recommended FE case, selected FE case, and full-section reference</div>
       </div>
       <div id="backbonePlot" class="plot-box"></div>
 
       <div class="panel-head tight-top">
-        <h2>Strength-mismatch map</h2>
-        <div class="toolbar-note" id="mismatchMapNote">Lower score means closer agreement with the target M<sub>y</sub> and M<sub>c</sub></div>
+        <h2>Inverse recommendation map</h2>
+        <div class="toolbar-note" id="recommendationMapNote">Lower score means a better match to the minimum targets and the inverse ML geometry estimate.</div>
       </div>
-      <div id="mismatchMap" class="plot-box small"></div>
+      <div id="recommendationMap" class="plot-box small"></div>
 
       <div class="panel-head tight-top">
         <h2>Closest FE contour images</h2>
@@ -98,12 +98,12 @@
       <h2>Inverse ML outputs</h2>
       <div class="mini-cards" id="estimateCards"></div>
 
-      <div class="subheading">Context screening rates</div>
+      <div class="subheading">Context and feasibility rates</div>
       <div class="mini-cards criteria-cards" id="criteriaCards"></div>
       <div id="criterionNotice" class="notice-box"></div>
 
-      <div class="subheading">Closest FE-backed cases</div>
-      <div class="table-note">Click a row to inspect that FE case.</div>
+      <div class="subheading">Ranked FE-backed opening cases</div>
+      <div class="table-note">Click a row to inspect that exact FE case.</div>
       <div class="table-wrap">
         <table id="candidateTable">
           <thead>
@@ -113,9 +113,10 @@
               <th>d<sub>o</sub>/h</th>
               <th>S/h</th>
               <th>M<sub>y</sub></th>
-              <th>ΔM<sub>y</sub></th>
               <th>M<sub>c</sub></th>
-              <th>ΔM<sub>c</sub></th>
+              <th>M<sub>u</sub></th>
+              <th>θ<sub>u</sub></th>
+              <th>OK</th>
               <th>J1</th>
               <th>J2</th>
               <th>J3</th>
