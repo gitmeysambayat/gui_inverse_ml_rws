@@ -1,0 +1,1 @@
+This hotfix changes the backbone plot to use the same forward-style FE benchmark grid used in the original GUI appearance: -0.06, -0.04, -0.02, +0.02, +0.04, +0.06 rad. The underlying FE case selection and contour lookup are unchanged.

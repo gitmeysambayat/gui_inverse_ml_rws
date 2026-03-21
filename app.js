@@ -17,6 +17,7 @@ const M004_THRESHOLD = 0.8;
 const SIGMA_THRESHOLD = 1.0;
 const PEEQ_ZERO_TOL = 1e-12;
 const MCCRIT_THRESHOLD = 0.8;
+const FORWARD_BACKBONE_ROTATIONS = [-0.06, -0.04, -0.02, 0.02, 0.04, 0.06];
 
 function fmt(value, digits = 3) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return '—';
@@ -460,32 +461,39 @@ function findSelectedRow(activeRows) {
 }
 
 function plotBackbone(selectedRow, recommendedRow, fullSection) {
+  const xPlot = FORWARD_BACKBONE_ROTATIONS;
   const traces = [];
   if (fullSection) {
     traces.push({
-      x: state.meta.rotations,
-      y: fullSection.backbone,
-      mode: 'lines',
+      x: xPlot,
+      y: forwardStyleBackbone(fullSection.backbone),
+      mode: 'lines+markers',
+      connectgaps: false,
       name: `Full section ${fullSection.id}`,
-      line: { width: 2, dash: 'dash', color: '#767676' }
+      line: { width: 2, dash: 'dash', color: '#767676' },
+      marker: { size: 6, color: '#767676' }
     });
   }
   if (recommendedRow) {
     traces.push({
-      x: state.meta.rotations,
-      y: recommendedRow.backbone,
-      mode: 'lines',
+      x: xPlot,
+      y: forwardStyleBackbone(recommendedRow.backbone),
+      mode: 'lines+markers',
+      connectgaps: false,
       name: `Recommended FE ${recommendedRow.id}`,
-      line: { width: 3, color: '#2a5bd7' }
+      line: { width: 3, color: '#2a5bd7' },
+      marker: { size: 7, color: '#2a5bd7' }
     });
   }
   if (selectedRow && (!recommendedRow || selectedRow.id !== recommendedRow.id)) {
     traces.push({
-      x: state.meta.rotations,
-      y: selectedRow.backbone,
-      mode: 'lines',
+      x: xPlot,
+      y: forwardStyleBackbone(selectedRow.backbone),
+      mode: 'lines+markers',
+      connectgaps: false,
       name: `Selected FE ${selectedRow.id}`,
-      line: { width: 4, color: '#111827' }
+      line: { width: 4, color: '#111827' },
+      marker: { size: 7, color: '#111827' }
     });
   }
   const layout = {
@@ -566,6 +574,33 @@ function passSymbol(flag) {
   return `<span class="${flag ? 'status-yes' : 'status-no'}">${flag ? '✓' : '✕'}</span>`;
 }
 
+function interpolateBackboneAt(backbone, xTarget) {
+  const xs = state.meta.rotations.map((x) => Number(x));
+  const pairs = xs
+    .map((x, i) => ({ x, y: backbone ? backbone[i] : null }))
+    .filter((p) => p.y !== null && p.y !== undefined && !Number.isNaN(Number(p.y)));
+  if (!pairs.length) return null;
+
+  const exact = pairs.find((p) => Math.abs(p.x - xTarget) < 1e-12);
+  if (exact) return Number(exact.y);
+
+  for (let i = 0; i < pairs.length - 1; i += 1) {
+    const a = pairs[i];
+    const b = pairs[i + 1];
+    if ((a.x <= xTarget && xTarget <= b.x) || (b.x <= xTarget && xTarget <= a.x)) {
+      if (Math.abs(b.x - a.x) < 1e-12) return Number(a.y);
+      const t = (xTarget - a.x) / (b.x - a.x);
+      return Number(a.y) + t * (Number(b.y) - Number(a.y));
+    }
+  }
+
+  return null;
+}
+
+function forwardStyleBackbone(backbone) {
+  return FORWARD_BACKBONE_ROTATIONS.map((x) => interpolateBackboneAt(backbone, x));
+}
+
 function updateCandidateTable(rows, selectedRow) {
   const tbody = document.querySelector('#candidateTable tbody');
   tbody.innerHTML = rows.slice(0, 10).map((row, idx) => `
@@ -601,7 +636,7 @@ function updateEstimateCards(doPred, shPred, recommendedRow, selectedRow, feasib
     ['Recommended S/h', recommendedRow ? fmt(recommendedRow.Sh, 2) : '—'],
     ['Feasible FE cases', `${feasibleCount} / ${totalRows}`],
     ['Selected FE case', selectedRow ? selectedRow.id : '—'],
-    ['Backbone source', 'Exact FE']
+    ['Backbone source', 'Forward GUI FE grid']
   ];
   document.getElementById('estimateCards').innerHTML = cards.map(([k, v]) => `<div class="card"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
